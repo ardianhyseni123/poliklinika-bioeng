@@ -16,8 +16,10 @@ table {width:100%; border-collapse:collapse; margin-top:10px; font-size:14px;}
 th, td {border:1px solid #ccc; padding:8px; text-align:center;}
 th {background:linear-gradient(to right,#fce4e4,#fff);}
 .report-section {margin-top:15px;}
-.final-signs {display:flex; justify-content:space-between; margin-top:60px;}
-.final-signs div {width:45%; text-align:center;}
+.final-signs {display:flex; justify-content:space-between; margin-top:60px; width:100%;}
+.final-signs div {width:45%;}
+.final-signs div:first-child {text-align:left;}   /* Vertetoi majtas */
+.final-signs div:last-child {text-align:right;}  /* Punoi djathtas */
 #reportContainer {display:none; background:white; padding:20px; border-radius:12px;}
 input, select {width:100%; padding:8px; border-radius:6px; border:1px solid #ccc; margin-top:5px;}
 button {margin-top:10px; padding:10px; background:#b30000; color:white; border:none; border-radius:8px; cursor:pointer;}
@@ -215,7 +217,6 @@ function renderAnalysis(){
     });
     document.querySelectorAll(".delBtn").forEach(btn=>btn.addEventListener('click',e=>{
       const idx=Number(e.target.dataset.index);
-      const tx=db.transaction("patients","readwrite");
       const store=db.transaction("patients","readwrite").objectStore("patients");
       store.get(selectedPatientId).onsuccess=function(evt){
         const p=evt.target.result;
@@ -226,7 +227,6 @@ function renderAnalysis(){
     }));
     document.querySelectorAll(".valInput").forEach(input=>input.addEventListener('input',e=>{
       const idx=Number(e.target.dataset.index);
-      const tx=db.transaction("patients","readwrite");
       const store=db.transaction("patients","readwrite").objectStore("patients");
       store.get(selectedPatientId).onsuccess=function(evt){
         const p=evt.target.result;
@@ -242,8 +242,7 @@ addAnalysis.addEventListener('click',()=>{
   if(!selectedPatientId) return alert("Zgjidh pacientin!");
   const type=analysisType.value, name=analysisName.value;
   const reference=analysesByType[type][name];
-  const tx=db.transaction("patients","readwrite");
-  const store=tx.objectStore("patients");
+  const store=db.transaction("patients","readwrite").objectStore("patients");
   store.get(selectedPatientId).onsuccess=function(e){
     const p=e.target.result;
     if(p.analyses.find(a=>a.name===name)) return alert("Analiza tashmë ekziston!");
@@ -256,13 +255,13 @@ addAnalysis.addEventListener('click',()=>{
 // Raporti Profesional
 function generateReportFunc(){
   if(!selectedPatientId) return alert("Zgjidh pacientin!");
-  const tx=db.transaction("patients","readonly");
-  const store=tx.objectStore("patients");
+  const store=db.transaction("patients","readonly").objectStore("patients");
   store.get(selectedPatientId).onsuccess=function(e){
     const p=e.target.result;
     let html=`<div style="text-align:center; margin-bottom:20px;">
-                <span class="logo"></span>
-                <h2 style="display:inline-block; margin-left:10px;">Raporti Analizave</h2>
+                <span style="display:inline-block;width:30px;height:30px;background:#b30000;border-radius:50%; margin-right:10px;"></span>
+                <h1 style="display:inline-block; vertical-align:middle;">POLIKLINIKA BIOENG</h1>
+                <h2>Raport Profesional</h2>
               </div>
               <p><strong>Emri:</strong> ${p.name} &nbsp;&nbsp; <strong>Mbiemri:</strong> ${p.surname}</p>
               <p><strong>Adresa:</strong> ${p.address} &nbsp;&nbsp; <strong>Gjinia:</strong> ${p.gender}</p>
@@ -288,13 +287,34 @@ function generateReportFunc(){
   }
 }
 
-generateReport.addEventListener('click',generateReportFunc);
-printReport.addEventListener('click',()=>{ generateReportFunc(); window.print(); });
+// Print me logo dhe titull
+printReport.addEventListener('click', () => {
+    if(!selectedPatientId) return alert("Zgjidh pacientin!");
+    generateReportFunc();
+    setTimeout(()=>{
+        const printWindow = window.open('', '', 'width=900,height=700');
+        printWindow.document.write('<html><head><title>Raporti Profesional</title>');
+        printWindow.document.write('<style>body{font-family:Times New Roman, serif; color:#333; margin:20px;} h1,h2,h3{color:#b30000;} table{width:100%; border-collapse:collapse; margin-top:10px;} th, td{border:1px solid #ccc; padding:8px; text-align:center;} th{background:#fce4e4;} .final-signs{display:flex; justify-content:space-between; width:100%; margin-top:60px;} .final-signs div:first-child{text-align:left;} .final-signs div:last-child{text-align:right;}</style>');
+        printWindow.document.write('</head><body>');
+        printWindow.document.write(reportContainer.innerHTML);
+        printWindow.document.write('</body></html>');
+        printWindow.document.close();
+        printWindow.focus();
+        printWindow.print();
+    },300);
+});
+
+// Shkarko PDF
 downloadPDF.addEventListener('click',()=>{
   generateReportFunc();
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
-  doc.html(reportContainer, {callback:function(d){d.save("Raporti_Analizave.pdf");}, x:10, y:10, html2canvas:{scale:0.5}});
+  setTimeout(()=>{
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    doc.html(reportContainer, {
+      callback:function(d){d.save("Raporti_Analizave.pdf");},
+      x:10, y:10, html2canvas:{scale:0.5}
+    });
+  },300);
 });
 </script>
 </body>
